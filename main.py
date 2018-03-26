@@ -1,6 +1,7 @@
 import numpy as np
 from get import *
 
+
 def static_vars(**kwargs):
     def decorate(func):
         for k in kwargs:
@@ -11,7 +12,9 @@ def static_vars(**kwargs):
 
 # считывание слов из файла
 words = dict()
-@static_vars(eof = -1)
+
+
+@static_vars(eof=-1)
 def get_word():
     s = ""
     while True:
@@ -34,6 +37,8 @@ def get_word():
 
 # вставляем слова в словарь словарей
 frequency = dict()
+
+
 def insert_to_dict():
     first = get_word()
     frequency[first] = 1
@@ -62,10 +67,13 @@ def getLists(d):
     return (dList, dFrequency)
 
 
-# какждому слову соответствует слово, которое встречается после него чаще всего, и его частота
+# какждому слову соответствует слово, которое встречается после
+# него чаще всего, и его частота
 wordsList = list()
 wordsFrequency = list()
 newWords = dict()
+
+
 def transfiguration():
     global wordsList, wordsFrequency
     wordsList, wordsFrequency = getLists(frequency)
@@ -77,7 +85,7 @@ def getFirstWord():
     return np.random.choice(wordsList, 1, wordsFrequency)[0]
 
 
-def getWord(word = -1):
+def getWord(word=-1):
     if word not in newWords or newWords[word][0].__len__ == 0:
         return getFirstWord()
     return np.random.choice(newWords[word][0], 1, newWords[word][1])[0]
