@@ -1,84 +1,36 @@
 import numpy as np
-from get import *
+import argparse
+import sys
+import json
+from pprint import pprint
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--model', nargs='?',
+                    type=argparse.FileType('r', encoding="utf-8"),
+                    default=sys.stdin,
+                    help='Model file')
+parser.add_argument('--output', nargs='?',
+                    type=argparse.FileType('w', encoding="utf-8"),
+                    default=sys.stdout,
+                    help='Output file')
+parser.add_argument('--length', nargs='?',
+                    type=int,
+                    default=200,
+                    help='Generated text length (in words)')
+parser.add_argument('--seed', nargs='?',
+                    type=str,
+                    default=-1,
+                    help='First word')
 
-def static_vars(**kwargs):
-    def decorate(func):
-        for k in kwargs:
-            setattr(func, k, kwargs[k])
-        return func
-    return decorate
+args = parser.parse_args()
 
+ins = vars(args).get('model')
+outs = vars(args).get('output')
 
-# считывание слов из файла
-words = dict()
-
-
-@static_vars(eof=-1)
-def get_word():
-    s = ""
-    while True:
-        symb = ins.read(1)
-        if symb == "":
-            if s != "":
-                break
-            return get_word.eof
-        if s != "" and (symb == " " or symb == "\n"):
-            break
-        if symb.isalpha() or symb == '-':
-            if lc:
-                s += symb.lower()
-            else:
-                s += symb
-    if s not in words:
-        words[s] = dict()
-    return s
-
-
-# вставляем слова в словарь словарей
-frequency = dict()
-
-
-def insert_to_dict():
-    first = get_word()
-    frequency[first] = 1
-    while True:
-        second = get_word()
-        if second == get_word.eof:
-            break
-        if second not in words[first]:
-            words[first][second] = 0
-        words[first][second] += 1
-        if second not in frequency:
-            frequency[second] = 0
-        frequency[second] += 1
-        first = second
-
-
-def getLists(d):
-    dList = list()
-    dFrequency = list()
-    dWords = 0
-    for key, value in frequency.items():
-        dWords += value
-    for key, value in frequency.items():
-        dList.append(key)
-        dFrequency.append(value / dWords)
-    return (dList, dFrequency)
-
-
-# какждому слову соответствует слово, которое встречается после
-# него чаще всего, и его частота
-wordsList = list()
-wordsFrequency = list()
-newWords = dict()
-
-
-def transfiguration():
-    global wordsList, wordsFrequency
-    wordsList, wordsFrequency = getLists(frequency)
-    for key, value in words.items():
-        newWords[key] = getLists(value)
+data = json.load(ins)
+wordsList = data[0]
+wordsFrequency = data[1]
+newWords = data[2]
 
 
 def getFirstWord():
@@ -91,18 +43,14 @@ def getWord(word=-1):
     return np.random.choice(newWords[word][0], 1, newWords[word][1])[0]
 
 
-def genText(len):
-    if len == 0:
-        return
-    word = getWord()
+def genText(len, firstWord):
+    if (firstWord != -1):
+        len -= 1
+        outs.write("%s " % firstWord)
+    word = getWord(firstWord)
     outs.write("%s " % word)
     for i in range(len - 1):
         word = getWord(word)
         outs.write("%s " % word)
-    outs.write('\n')
 
-
-insert_to_dict()
-transfiguration()
-
-genText(200)
+genText(vars(args).get('length'), vars(args).get('seed'))
