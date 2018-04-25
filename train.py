@@ -20,93 +20,71 @@ outs = vars(args).get('model')
 lc = vars(args).get('lc')
 
 
-def static_vars(**kwargs):
-    def decorate(func):
-        for k in kwargs:
-            setattr(func, k, kwargs[k])
-        return func
-    return decorate
+class Model:
+    def __init__(self):
+        self.words = dict()
+        self.frequency = dict()
+        self.wordsList = list()
+        self.wordsFrequency = list()
+        self.newWords = dict()
 
-
-# считывание слов из файла
-words = dict()
-
-
-@static_vars(eof=-1)
-@static_vars(file=None)
-def get_word():
-    s = ""
-    while True:
-        symb = get_word.file.read(1)
-        if symb == "":
-            if s != "":
-                break
-            return get_word.eof
-        if s != "" and (symb == " " or symb == "\n"):
-            break
-        if symb.isalpha() or symb == '-':
-            if lc:
-                s += symb.lower()
-            else:
-                s += symb
-    if s not in words:
-        words[s] = dict()
-    return s
-
-
-# вставляем слова в словарь словарей
-frequency = dict()
-
-
-def insert_to_dict():
-    for filename in os.listdir(ins):
-        get_word.file = open(ins + '\\' + filename, 'r', encoding="utf-8")
-        first = get_word()
-        if first == get_word.eof:
-            get_word.file.close()
-            continue
-        frequency[first] = 1
+    def get_word(self, filename):
+        file = open(filename, 'r', encoding="utf-8")
         while True:
-            second = get_word()
-            if second == get_word.eof:
-                break
-            if second not in words[first]:
-                words[first][second] = 0
-            words[first][second] += 1
-            if second not in frequency:
-                frequency[second] = 0
-            frequency[second] += 1
-            first = second
-        get_word.file.close()
+            s = str()
+            while True:
+                symb = file.read(1)
+                if symb == "":
+                    if s != "":
+                        break
+                    file.close()
+                    return
+                if s != "" and (symb == " " or symb == "\n"):
+                    break
+                if symb.isalpha() or symb == '-':
+                    if lc:
+                        s += symb.lower()
+                    else:
+                        s += symb
+            if s not in self.words:
+                self.words[s] = dict()
+            yield s
 
+    def get(self):
+        for filename in os.listdir(ins):
+            full_filename = ins + '\\' + filename
+            previous_word = None
+            for word in self.get_word(full_filename):
+                if previous_word is not None:
+                    if previous_word not in self.words[word]:
+                        self[word].set_default(previous_word, 0)
+                    self.words[word][previous_word] += 1
+                if word not in self.frequency:
+                    self.frequency[word] = 0
+                self.frequency[word] += 1
+                previous_word = word
 
-def getLists(d):
-    dList = list()
-    dFrequency = list()
-    dWords = 0
-    for key, value in frequency.items():
-        dWords += value
-    for key, value in frequency.items():
-        dList.append(key)
-        dFrequency.append(value / dWords)
-    return (dList, dFrequency)
+    def getLists(self):
+        dList = list()
+        dFrequency = list()
+        dWords = 0
+        for key, value in self.frequency.items():
+            dWords += value
+        for key, value in self.frequency.items():
+            dList.append(key)
+            dFrequency.append(value / dWords)
+        return (dList, dFrequency)
 
+    def process(self):
+        self.wordsList, self.wordsFrequency = self.getLists()
+        for key, value in self.words.items():
+            self.newWords[key] = self.getLists()
 
-# каждому слову соответствует слово, которое встречается после
-# него чаще всего, и его частота
-wordsList = list()
-wordsFrequency = list()
-newWords = dict()
+    def write(self):
+        outs.write(json.dumps([self.wordsList, self.wordsFrequency, self.newWords], ensure_ascii=False))
 
-
-def transfiguration():
-    global wordsList, wordsFrequency
-    wordsList, wordsFrequency = getLists(frequency)
-    for key, value in words.items():
-        newWords[key] = getLists(value)
-
-
-insert_to_dict()
-transfiguration()
-
-outs.write(json.dumps([wordsList, wordsFrequency, newWords], ensure_ascii=False))
+if __name__ == '__main__':
+    model = Model()
+    model.get()
+    model.process()
+    model.write()
