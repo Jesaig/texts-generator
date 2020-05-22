@@ -52,12 +52,12 @@ class Model:
 
     def get(self):
         for filename in os.listdir(ins):
-            full_filename = ins + '\\' + filename
+            full_filename = ins + '/' + filename
             previous_word = None
             for word in self.get_word(full_filename):
                 if previous_word is not None:
                     if previous_word not in self.words[word]:
-                        self[word].set_default(previous_word, 0)
+                        self.words[word].setdefault(previous_word, 0)
                     self.words[word][previous_word] += 1
                 if word not in self.frequency:
                     self.frequency[word] = 0
